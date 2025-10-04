@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PageLoad Extractor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <p>Extract interactive elements and images from any website</p>
+        </header>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input type="url" id="urlInput" placeholder="Enter website URL..." class="url-input">
+                <button id="runButton" class="run-button">Run</button>
+                <button id="viewImagesButton" class="view-images-button hidden">View Images</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Extracting content...</p>
+        </div>
+
+        <div class="starred-filters" id="starredFilters" style="display: none;">
+            <div class="starred-container">
+                <div class="starred-section">
+                    <div class="starred-buttons" id="starredButtons">
+                        <!-- Starred actions will be added here -->
+                    </div>
+                </div>
+                
+                <div class="starred-management">
+                    <div class="starred-list" id="starredList">
+                        <!-- Starred items management will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="results hidden">
+
+            <div class="category-grid">
+                <div class="category-section">
+                    <h3>Images</h3>
+                    <div class="category-filter">
+                        <input type="text" placeholder="Filter images..." id="images-filter">
+                    </div>
+                    <div id="images-category" class="category-content"></div>
+                </div>
+
+                <div class="category-section">
+                    <h3>Navigation Links</h3>
+                    <div class="category-filter">
+                        <input type="text" placeholder="Filter navigation..." id="navigation-filter">
+                    </div>
+                    <div id="navigation-category" class="category-content"></div>
+                </div>
+
+                <div class="category-section">
+                    <h3>Buttons</h3>
+                    <div class="category-filter">
+                        <input type="text" placeholder="Filter buttons..." id="buttons-filter">
+                    </div>
+                    <div id="buttons-category" class="category-content"></div>
+                </div>
+
+                <div class="category-section">
+                    <h3>Form Elements</h3>
+                    <div class="category-filter">
+                        <input type="text" placeholder="Filter forms..." id="forms-filter">
+                    </div>
+                    <div id="forms-category" class="category-content"></div>
+                </div>
+
+                <div class="category-section">
+                    <h3>Data Elements</h3>
+                    <div class="category-filter">
+                        <input type="text" placeholder="Filter data..." id="data-filter">
+                    </div>
+                    <div id="data-category" class="category-content"></div>
+                </div>
+
+                <div class="category-section">
+                    <h3>Other</h3>
+                    <div class="category-filter">
+                        <input type="text" placeholder="Filter other..." id="other-filter">
+                    </div>
+                    <div id="other-category" class="category-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="error hidden">
+            <h3>Error</h3>
+            <p id="errorMessage"></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

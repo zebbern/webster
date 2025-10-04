@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Image Viewer - PageLoad Extractor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="image-viewer-container">
+        <div class="image-viewer-header">
+            <button id="backButton" class="back-button">← Back to Results</button>
+            <h1>Image Viewer</h1>
+        </div>
+
+        <div class="image-filters">
+            <h3>Filter by Format: (Click multiple to combine)</h3>
+            <div class="format-buttons">
+                <button class="format-btn active" data-format="all">All</button>
+                <button class="format-btn" data-format="jpg">JPG</button>
+                <button class="format-btn" data-format="jpeg">JPEG</button>
+                <button class="format-btn" data-format="png">PNG</button>
+                <button class="format-btn" data-format="webp">WebP</button>
+                <button class="format-btn" data-format="gif">GIF</button>
+                <button class="format-btn" data-format="svg">SVG</button>
+            </div>
+        </div>
+
+        <div class="starred-filters" id="starredFilters" style="display: none;">
+            <div class="starred-section">
+                <div class="starred-buttons" id="starredButtons">
+                    <!-- Starred actions will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="imageGrid" class="image-grid">
+            <!-- Images will be dynamically loaded here -->
+        </div>
+
+        <div id="noImages" class="no-images hidden">
+            <p>No images found to display.</p>
+        </div>
+
+        <div class="starred-filters" id="starredFiltersBottom" style="display: none;">
+            <div class="starred-section">
+                <div class="starred-buttons" id="starredButtonsBottom">
+                    <!-- Starred actions will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const backButton = document.getElementById('backButton');
+            const imageGrid = document.getElementById('imageGrid');
+            const noImages = document.getElementById('noImages');
+            const formatButtons = document.querySelectorAll('.format-btn');
+
+            let allImages = [];
+            let selectedFormats = ['all'];
+
+            backButton.addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+
+            // Format filter event listeners
+            formatButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const format = this.dataset.format;
+                    
+                    if (format === 'all') {
+                        // Reset to all
+                        selectedFormats = ['all'];
+                        formatButtons.forEach(btn => {
+                            btn.classList.remove('active', 'selected');
+                        });
+                        this.classList.add('active');
+                    } else {
+                        // Remove 'all' if selecting specific formats
+                        if (selectedFormats.includes('all')) {
+                            selectedFormats = [];
+                            formatButtons[0].classList.remove('active'); // Remove 'All' button active state
+                        }
+                        
+                        // Toggle this format
+                        if (selectedFormats.includes(format)) {
+                            selectedFormats = selectedFormats.filter(f => f !== format);
+                            this.classList.remove('selected');
+                        } else {
+                            selectedFormats.push(format);
+                            this.classList.add('selected');
+                        }
+                        
+                        // If no formats selected, go back to all
+                        if (selectedFormats.length === 0) {
+                            selectedFormats = ['all'];
+                            formatButtons[0].classList.add('active');
+                        }
+                    }
+                    
+                    displayFilteredImages();
+                });
+            });
+
+            // Get images from localStorage
+            allImages = JSON.parse(localStorage.getItem('extractedImages') || '[]');
+            
+            // Load and display starred items
+            loadStarredItems();
+            
+            if (allImages.length === 0) {
+                noImages.classList.remove('hidden');
+                return;
+            }
+
+            // Display all images initially
+            displayFilteredImages();
+
+            function updateStarredItemsFromNewPage(newResults) {
+                let starredItems = JSON.parse(localStorage.getItem('starredItems') || '[]');
+                let updated = false;
+                
+                starredItems.forEach(starredItem => {
+                    // Look for matching navigation element on new page
+                    const matchingItem = findMatchingNavigationItem(starredItem, newResults);
+                    if (matchingItem) {
+                        // Update the starred item with new URL (preserve custom prefix)
+                        starredItem.originalItem.href = matchingItem.href;
+                        updated = true;
+                        console.log(`Updated "${starredItem.name}" to new URL: ${matchingItem.href}`);
+                        console.log(`Custom prefix preserved: "${starredItem.customPrefix || 'none'}"`);
+                    }
+                });
+                
+                if (updated) {
+                    localStorage.setItem('starredItems', JSON.stringify(starredItems));
+                    // Refresh the starred items display
+                    loadStarredItems();
+                }
+            }
+            
+            function findMatchingNavigationItem(starredItem, newResults) {
+                const original = starredItem.originalItem;
+                let bestMatch = null;
+                let bestScore = 0;
+                
+                newResults.forEach(item => {
+                    if (item.type !== 'INTERACTIVE' || !item.href) return;
+                    
+                    let score = 0;
+                    
+                    // Match by title (highest priority)
+                    if (original.title && item.title && 
+                        original.title.toLowerCase() === item.title.toLowerCase()) {
+                        score += 10;
+                    } else if (original.title && item.title && 
+                               item.title.toLowerCase().includes(original.title.toLowerCase())) {
+                        score += 5;
+                    }
+                    
+                    // Match by CSS classes (very important)
+                    if (original.className && item.className) {
+                        const originalClasses = original.className.toLowerCase().split(' ');
+                        const itemClasses = item.className.toLowerCase().split(' ');
+                        
+                        originalClasses.forEach(cls => {
+                            if (itemClasses.includes(cls)) {
+                                score += 8; // High score for class matches
+                            }
+                        });
+                    }
+                    
+                    // Match by text content
+                    if (original.text && item.text &&
+                        original.text.toLowerCase() === item.text.toLowerCase()) {
+                        score += 7;
+                    } else if (original.text && item.text &&
+                               item.text.toLowerCase().includes(original.text.toLowerCase())) {
+                        score += 3;
+                    }
+                    
+                    // Match by ID
+                    if (original.id && item.id && original.id === item.id) {
+                        score += 6;
+                    }
+                    
+                    // Match by tag type
+                    if (original.tag && item.tag && original.tag === item.tag) {
+                        score += 2;
+                    }
+                    
+                    // Match by data attributes
+                    if (original.allAttributes && item.allAttributes) {
+                        Object.keys(original.allAttributes).forEach(attr => {
+                            if (attr.startsWith('data-') && 
+                                item.allAttributes[attr] === original.allAttributes[attr]) {
+                                score += 4;
+                            }
+                        });
+                    }
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = item;
+                    }
+                });
+                
+                // Only return match if score is high enough
+                return bestScore >= 5 ? bestMatch : null;
+            }
+
+            function loadStarredItems() {
+                const starredItems = JSON.parse(localStorage.getItem('starredItems') || '[]');
+                const starredFilters = document.getElementById('starredFilters');
+                const starredButtons = document.getElementById('starredButtons');
+                const starredFiltersBottom = document.getElementById('starredFiltersBottom');
+                const starredButtonsBottom = document.getElementById('starredButtonsBottom');
+                
+                starredButtons.innerHTML = '';
+                starredButtonsBottom.innerHTML = '';
+                
+                if (starredItems.length > 0) {
+                    starredFilters.style.display = 'block';
+                    starredFiltersBottom.style.display = 'block';
+                    
+                    starredItems.forEach((item, index) => {
+                        // Create navigation button for all items (handle URLs appropriately)
+                        const button = document.createElement('button');
+                        button.className = 'starred-btn';
+                        button.textContent = item.name;
+                        
+                        // Always create a functional button using prefix + URL value
+                        const activePrefix = item.customPrefix || '';
+                        let targetUrl = '';
+                        
+                        if (item.originalItem.href) {
+                            if (activePrefix) {
+                                // If there's a prefix, replace the domain with the prefix
+                                if (item.originalItem.href.startsWith('http')) {
+                                    const url = new URL(item.originalItem.href);
+                                    targetUrl = `${activePrefix}${url.pathname}${url.search}${url.hash}`;
+                                } else {
+                                    // If the href doesn't start with http, treat it as a path
+                                    targetUrl = `${activePrefix}${item.originalItem.href}`;
+                                }
+                            } else {
+                                // No prefix, use original URL
+                                targetUrl = item.originalItem.href;
+                            }
+                        } else if (activePrefix) {
+                            // No original URL but has prefix - create a base URL
+                            targetUrl = `${activePrefix}/`;
+                        }
+                        
+                        if (targetUrl) {
+                            button.title = `Click to navigate to: ${targetUrl}`;
+                            button.addEventListener('click', async () => {
+                                try {
+                                    const response = await fetch('/api/extract', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ url: targetUrl })
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (!response.ok) {
+                                        throw new Error(data.error || 'Failed to extract content');
+                                    }
+
+                                    // Update images and reload viewer
+                                    const newImages = data.results.filter(item => item.type === 'IMAGE');
+                                    localStorage.setItem('extractedImages', JSON.stringify(newImages));
+                                    allImages = newImages;
+                                    displayFilteredImages();
+                                    
+                                    // Update starred items with new navigation from this page
+                                    updateStarredItemsFromNewPage(data.results);
+                                    loadStarredItems(); // Refresh starred buttons
+                                    
+                                    // Show success message
+                                    const header = document.querySelector('.image-viewer-header h1');
+                                    const originalText = header.textContent;
+                                    header.textContent = `✅ Loaded from: ${item.name}`;
+                                    setTimeout(() => {
+                                        header.textContent = originalText;
+                                    }, 3000);
+                                    
+                                } catch (error) {
+                                    alert('Failed to extract from starred URL: ' + error.message);
+                                }
+                            });
+                        } else {
+                            // No URL and no prefix
+                            button.title = `This item needs a URL or prefix to navigate`;
+                            button.style.opacity = '0.6';
+                            button.addEventListener('click', () => {
+                                alert(`"${item.name}" needs either a URL or a prefix to navigate. Set a prefix in "Manage Favorites".`);
+                            });
+                        }
+                        
+                        starredButtons.appendChild(button);
+                        
+                        // Create duplicate button for bottom section
+                        const buttonBottom = button.cloneNode(true);
+                        // Re-attach event listeners since they don't clone
+                        if (targetUrl) {
+                            buttonBottom.addEventListener('click', async () => {
+                                try {
+                                    const response = await fetch('/api/extract', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({ url: targetUrl })
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (!response.ok) {
+                                        throw new Error(data.error || 'Failed to extract content');
+                                    }
+
+                                    // Update images and reload viewer
+                                    const newImages = data.results.filter(item => item.type === 'IMAGE');
+                                    localStorage.setItem('extractedImages', JSON.stringify(newImages));
+                                    allImages = newImages;
+                                    displayFilteredImages();
+                                    
+                                    // Update starred items with new navigation from this page
+                                    updateStarredItemsFromNewPage(data.results);
+                                    loadStarredItems(); // Refresh starred buttons
+                                    
+                                    // Show success message
+                                    const header = document.querySelector('.image-viewer-header h1');
+                                    const originalText = header.textContent;
+                                    header.textContent = `✅ Loaded from: ${item.name}`;
+                                    setTimeout(() => {
+                                        header.textContent = originalText;
+                                    }, 3000);
+                                    
+                                } catch (error) {
+                                    alert('Failed to extract from starred URL: ' + error.message);
+                                }
+                            });
+                        } else {
+                            buttonBottom.addEventListener('click', () => {
+                                alert(`"${item.name}" needs either a URL or a prefix to navigate. Set a prefix in "Manage Favorites".`);
+                            });
+                        }
+                        starredButtonsBottom.appendChild(buttonBottom);
+                    });
+                }
+            }
+
+            function displayFilteredImages() {
+                imageGrid.innerHTML = '';
+
+                let filteredImages = allImages;
+                
+                if (!selectedFormats.includes('all')) {
+                    filteredImages = allImages.filter(image => 
+                        image.format && selectedFormats.includes(image.format.toLowerCase())
+                    );
+                }
+
+                if (filteredImages.length === 0) {
+                    imageGrid.innerHTML = '<p style="color: #888; text-align: center; padding: 40px;">No images found for this format.</p>';
+                    return;
+                }
+
+                // Display filtered images
+                filteredImages.forEach((image, index) => {
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'image-item';
+                    imageContainer.dataset.format = image.format;
+                    
+                    const img = document.createElement('img');
+                    img.src = image.url;
+                    img.alt = `${image.format} image ${index + 1}`;
+                    img.loading = 'lazy';
+                    
+                    // Add error handling
+                    img.onerror = function() {
+                        imageContainer.style.display = 'none';
+                    };
+
+                    imageContainer.appendChild(img);
+                    imageGrid.appendChild(imageContainer);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
