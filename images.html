@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f0f1a">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="msapplication-navbutton-color" content="#0f0f1a">
     <title>Image Viewer - PageLoad Extractor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="image-viewer-container">
-        <div class="image-viewer-header">
-            <button id="backButton" class="back-button">← Back to Results</button>
-            <h1>Image Viewer</h1>
-        </div>
-
         <div class="image-filters">
-            <h3>Filter by Format: (Click multiple to combine)</h3>
             <div class="format-buttons">
-                <button class="format-btn active" data-format="all">All</button>
+                <button class="format-btn" data-format="all">All</button>
                 <button class="format-btn" data-format="jpg">JPG</button>
                 <button class="format-btn" data-format="jpeg">JPEG</button>
                 <button class="format-btn" data-format="png">PNG</button>
-                <button class="format-btn" data-format="webp">WebP</button>
+                <button class="format-btn selected" data-format="webp">WebP</button>
                 <button class="format-btn" data-format="gif">GIF</button>
                 <button class="format-btn" data-format="svg">SVG</button>
+                <button id="backButton" class="back-button">← Back to Results</button>
             </div>
         </div>
 
@@ -59,7 +57,7 @@
             const formatButtons = document.querySelectorAll('.format-btn');
 
             let allImages = [];
-            let selectedFormats = ['all'];
+            let selectedFormats = ['webp'];
 
             backButton.addEventListener('click', function() {
                 window.location.href = 'index.html';

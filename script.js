@@ -157,6 +157,21 @@ document.addEventListener('DOMContentLoaded', function() {
         displayCategory('forms-category', categories.forms, 'form');
         displayCategory('data-category', categories.data, 'data');
         displayCategory('other-category', categories.other, 'other');
+
+        // Update result counts
+        updateResultCount('images-count', categories.images.length);
+        updateResultCount('navigation-count', categories.navigation.length);
+        updateResultCount('buttons-count', categories.buttons.length);
+        updateResultCount('forms-count', categories.forms.length);
+        updateResultCount('data-count', categories.data.length);
+        updateResultCount('other-count', categories.other.length);
+    }
+
+    function updateResultCount(countElementId, count) {
+        const countElement = document.getElementById(countElementId);
+        if (countElement) {
+            countElement.textContent = `(${count})`;
+        }
     }
 
     function categorizeResults(results) {
@@ -306,6 +321,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (filteredItems.length === 0) {
             container.innerHTML = '<p style="color: #888; font-style: italic;">No items match filter</p>';
+            // Update result count for this category
+            const categoryName = containerId.replace('-category', '');
+            const countElementId = categoryName + '-count';
+            updateResultCount(countElementId, 0);
             return;
         }
 
@@ -313,6 +332,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const element = createResultElement(item, container.categoryType);
             container.appendChild(element);
         });
+
+        // Update result count for this category
+        const categoryName = containerId.replace('-category', '');
+        const countElementId = categoryName + '-count';
+        updateResultCount(countElementId, filteredItems.length);
     }
 
     function createResultElement(item, categoryType) {
@@ -411,12 +435,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function truncateText(text, maxLength = 50) {
         if (!text) return '';
-        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        return text;
     }
 
     function truncateUrl(url, maxLength = 60) {
         if (!url) return '';
-        return url.length > maxLength ? url.substring(0, maxLength) + '...' : url;
+        return url;
     }
 
     function updateStarredItemsFromNewPage(newResults) {
@@ -664,7 +688,37 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Show section but indicate no starred items
             starredFilters.style.display = 'block';
-            starredList.innerHTML = '<p style="color: #888; font-style: italic;">No starred items yet. Star some navigation elements to see them here!</p>';
+            starredList.innerHTML = '';
         }
     }
+
+    // Quick filter functionality for Navigation Links
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('quick-filter-btn')) {
+            // Remove active class from all navigation filter buttons
+            document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Add active class to clicked button
+            e.target.classList.add('active');
+            
+            const filterTerm = e.target.dataset.filter.toLowerCase();
+            // Use the same filtering logic as the search filter
+            filterCategory('navigation-category', filterTerm);
+        }
+        
+        // Quick filter functionality for Images
+        if (e.target.classList.contains('image-filter-btn')) {
+            // Remove active class from all image filter buttons
+            document.querySelectorAll('.image-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Add active class to clicked button
+            e.target.classList.add('active');
+            
+            const filterFormat = e.target.dataset.format.toLowerCase();
+            // Use the same filtering logic as the search filter
+            filterCategory('images-category', filterFormat);
+        }
+    });
 });
